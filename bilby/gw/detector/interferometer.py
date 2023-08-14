@@ -274,6 +274,70 @@ class Interferometer(object):
         polarization_tensor = gwutils.get_polarization_tensor(ra, dec, time, psi, mode)
         return np.einsum('ij,ij->', self.geometry.detector_tensor, polarization_tensor)
 
+    def signal_with_time_dependent_antenna_response(self, waveform_polarizations, parameters, sampling_frequency, duration):
+        """ Create signal with time-dependent antenna response function by approximating Fourier transform
+        with first order Taylor expansion of the detector response function in the time domain.
+
+        Parameters
+        ==========
+        waveform_polarizations: dict
+            polarizations of the waveform
+        parameters: dict
+            parameters describing position and time of arrival of the signal
+        sampling_frequency: float
+            The sampling frequency (in Hz)
+        duration: float
+            The data duration (in s)
+
+        Returns
+        =======
+        array_like: A 1-dimensional array consisting of the sum of the plus and cross polarisations of the waveform and antenna response function.
+        """
+        n = 1/sampling_frequency
+        t_s = create_time_series(sampling_frequency, duration)
+        t_strain = self.strain_data.time_domain_strain
+        
+        h_p_t = (t_strain['plus']
+        h_c_t = t_strain['cross']
+    
+        th_p_t = t_s*h_p_t
+        th_c_t = t_s*h_c_t
+    
+        h_p_f, _ = nfft(h_p_t, sampling_frequency)
+        th_p_f, _ = nfft(th_p_t, sampling_frequency)
+    
+        h_c_f, _ = nfft(h_c_t, sampling_frequency)
+        th_c_f, _ = nfft(th_c_t, sampling_frequency)
+        
+        F0_p = inf.antenna_response(
+            parameters['ra'], 
+            parameters['dec'], 
+            parameters['geocent_time'], 
+            parameters['psi'], 
+            'plus')
+        F0_c = inf.antenna_response(
+            parameters['ra'], 
+            parameters['dec'], 
+            parameters['geocent_time'], 
+            parameters['psi'], 
+            'cross')
+    
+        F1_p = inf.antenna_response(
+            parameters['ra'], 
+            parameters['dec'], 
+            parameters['geocent_time']+1/sampling_frequency, 
+            parameters['psi'], 
+            'plus')
+        F1_c = inf.antenna_response(
+            parameters['ra'], 
+            parameters['dec'], 
+            parameters['geocent_time']+1/sampling_frequency, 
+            parameters['psi'], 
+            'cross')
+    
+        signal = (F0_p*h_p_f + (F1_p-F0_p)/n * th_p_f + F0_c*h_c_f + (F1_c-F0_c)/n * th_c_f)
+        return signal
+    
     def get_detector_response(self, waveform_polarizations, parameters):
         """ Get the detector response for a particular waveform
 
@@ -288,16 +352,7 @@ class Interferometer(object):
         =======
         array_like: A 3x3 array representation of the detector response (signal observed in the interferometer)
         """
-        signal = {}
-        for mode in waveform_polarizations.keys():
-            det_response = self.antenna_response(
-                parameters['ra'],
-                parameters['dec'],
-                parameters['geocent_time'],
-                parameters['psi'], mode)
-
-            signal[mode] = waveform_polarizations[mode] * det_response
-        signal_ifo = sum(signal.values())
+        signal_ifo = self.signal_with_time_dependent_antenna_response(waveform_polarizations, parameters, sampling_frequency, duration)
 
         signal_ifo *= self.strain_data.frequency_mask
 
