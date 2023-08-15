@@ -295,48 +295,24 @@ class Interferometer(object):
         """
         n = 1/sampling_frequency
         t_s = utils.create_time_series(sampling_frequency, duration)
-        t_strain = utils.infft(waveform_polarizations, sampling_frequency)
         
-        h_p_t = t_strain['plus']
-        h_c_t = t_strain['cross']
-    
-        th_p_t = t_s*h_p_t
-        th_c_t = t_s*h_c_t
-    
-        h_p_f, _ = utils.nfft(h_p_t, sampling_frequency)
-        th_p_f, _ = utils.nfft(th_p_t, sampling_frequency)
-    
-        h_c_f, _ = utils.nfft(h_c_t, sampling_frequency)
-        th_c_f, _ = utils.nfft(th_c_t, sampling_frequency)
+        signal = {}
+        for mode in waveform_polarizations.keys():
+            h_t = utils.infft(waveform_polarizations[mode], sampling_frequency)
+            th_t = t_s*h_t
+            h_f, _ = utils.nfft(h_t, sampling_frequency)
+            th_f, _ = utils.nfft(th_t, sampling_frequency)
+
+            F0 = self.antenna_response(parameters['ra'], parameters['dec'], 
+                                    parameters['geocent_time'], parameters['psi'], mode)
+
+            F1 = self.antenna_response(parameters['ra'], parameters['dec'], 
+                                    parameters['geocent_time']+1/sampling_frequency, 
+                                    parameters['psi'], mode)
+            
+            signal[mode] = F0*h_f + (F1-F0)/n * th_f
         
-        F0_p = inf.antenna_response(
-            parameters['ra'], 
-            parameters['dec'], 
-            parameters['geocent_time'], 
-            parameters['psi'], 
-            'plus')
-        F0_c = inf.antenna_response(
-            parameters['ra'], 
-            parameters['dec'], 
-            parameters['geocent_time'], 
-            parameters['psi'], 
-            'cross')
-    
-        F1_p = inf.antenna_response(
-            parameters['ra'], 
-            parameters['dec'], 
-            parameters['geocent_time']+1/sampling_frequency, 
-            parameters['psi'], 
-            'plus')
-        F1_c = inf.antenna_response(
-            parameters['ra'], 
-            parameters['dec'], 
-            parameters['geocent_time']+1/sampling_frequency, 
-            parameters['psi'], 
-            'cross')
-    
-        signal = (F0_p*h_p_f + (F1_p-F0_p)/n * th_p_f + F0_c*h_c_f + (F1_c-F0_c)/n * th_c_f)
-        return signal
+        return sum(signal.values())
     
     def get_detector_response(self, waveform_polarizations, parameters):
         """ Get the detector response for a particular waveform
