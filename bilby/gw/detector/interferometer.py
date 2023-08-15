@@ -294,7 +294,7 @@ class Interferometer(object):
         array_like: A 1-dimensional array consisting of the sum of the plus and cross polarisations of the waveform and antenna response function.
         """
         n = 1/sampling_frequency
-        t_s = create_time_series(sampling_frequency, duration)
+        t_s = utils.create_time_series(sampling_frequency, duration)
         t_strain = self.strain_data.time_domain_strain
         
         h_p_t = t_strain['plus']
