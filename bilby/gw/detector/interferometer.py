@@ -297,7 +297,7 @@ class Interferometer(object):
         t_s = create_time_series(sampling_frequency, duration)
         t_strain = self.strain_data.time_domain_strain
         
-        h_p_t = (t_strain['plus']
+        h_p_t = t_strain['plus']
         h_c_t = t_strain['cross']
     
         th_p_t = t_s*h_p_t
