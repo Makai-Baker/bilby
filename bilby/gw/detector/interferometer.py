@@ -295,7 +295,7 @@ class Interferometer(object):
         """
         n = 1/sampling_frequency
         t_s = utils.create_time_series(sampling_frequency, duration)
-        t_strain = self.strain_data.time_domain_strain
+        t_strain = utils.infft(waveform_polarizations, sampling_frequency)
         
         h_p_t = t_strain['plus']
         h_c_t = t_strain['cross']
@@ -303,11 +303,11 @@ class Interferometer(object):
         th_p_t = t_s*h_p_t
         th_c_t = t_s*h_c_t
     
-        h_p_f, _ = nfft(h_p_t, sampling_frequency)
-        th_p_f, _ = nfft(th_p_t, sampling_frequency)
+        h_p_f, _ = utils.nfft(h_p_t, sampling_frequency)
+        th_p_f, _ = utils.nfft(th_p_t, sampling_frequency)
     
-        h_c_f, _ = nfft(h_c_t, sampling_frequency)
-        th_c_f, _ = nfft(th_c_t, sampling_frequency)
+        h_c_f, _ = utils.nfft(h_c_t, sampling_frequency)
+        th_c_f, _ = utils.nfft(th_c_t, sampling_frequency)
         
         F0_p = inf.antenna_response(
             parameters['ra'], 
