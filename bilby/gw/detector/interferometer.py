@@ -352,7 +352,7 @@ class Interferometer(object):
         =======
         array_like: A 3x3 array representation of the detector response (signal observed in the interferometer)
         """
-        signal_ifo = self.signal_with_time_dependent_antenna_response(waveform_polarizations, parameters, sampling_frequency, duration)
+        signal_ifo = self.signal_with_time_dependent_antenna_response(waveform_polarizations, parameters, self.strain_data.sampling_frequency, self.strain_data.duration)
 
         signal_ifo *= self.strain_data.frequency_mask
 
